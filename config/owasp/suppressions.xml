@@ -7,6 +7,22 @@
     </notes>
     <cve>CVE-2016-1000027</cve>
   </suppress>
+  <suppress>
+    <notes>False positive. We don't have any reference to json-java_project:json-java
+      nor any reference to hutool:hutool:5.8.10. Suppressed long-term to re-assess and possibly delete.</notes>
+    <cve>CVE-2022-45688</cve>
+  </suppress>
+  <suppress>
+    <cve>CVE-2020-8908</cve>
+  </suppress>
+  <suppress until="2030-01-01">
+    <notes><![CDATA[
+                incorrectly tagging spring-security-crypto, Affects versions prior to 5.3.2
+                ]]>
+    </notes>
+    <packageUrl regex="true">^pkg:maven/org\.springframework\.security/spring\-security\-crypto@.+?$</packageUrl>
+    <cve>CVE-2020-5408</cve>
+  </suppress>
   <!--End of false positives section -->
 
   <!--Please add all the temporary suppression under the below section-->
