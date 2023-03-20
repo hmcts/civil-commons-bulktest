@@ -1,7 +1,6 @@
 plugins {
   id 'application'
   id 'checkstyle'
-  id 'pmd'
   id 'jacoco'
   id 'io.spring.dependency-management' version '1.1.0'
   id 'org.springframework.boot' version '2.7.9'
@@ -15,20 +14,15 @@ version = '0.0.1'
 
 java {
   toolchain {
-    languageVersion = JavaLanguageVersion.of(17)
+    languageVersion = JavaLanguageVersion.of(11)
   }
 }
 
-configurations {
-  functionalTestImplementation.extendsFrom testImplementation
-  functionalTestRuntimeOnly.extendsFrom runtimeOnly
-
-  integrationTestImplementation.extendsFrom testImplementation
-  integrationTestRuntimeOnly.extendsFrom runtimeOnly
-
-  smokeTestImplementation.extendsFrom testImplementation
-  smokeTestRuntimeOnly.extendsFrom runtimeOnly
-}
+def versions = [
+  junit        : '5.7.0',
+  junitPlatform: '1.8.1',
+  lombok :       '1.18.26'
+]
 
 tasks.withType(JavaCompile) {
   options.compilerArgs << "-Xlint:unchecked" << "-Werror"
@@ -55,15 +49,6 @@ checkstyle {
   maxWarnings = 0
   toolVersion = '10.7.0'
   getConfigDirectory().set(new File(rootDir, 'config/checkstyle'))
-}
-
-pmd {
-  toolVersion = "6.55.0"
-  sourceSets = [sourceSets.main, sourceSets.test]
-  reportsDir = file("$project.buildDir/reports/pmd")
-  // https://github.com/pmd/pmd/issues/876
-  ruleSets = []
-  ruleSetFiles = files("config/pmd/ruleset.xml")
 }
 
 jacocoTestReport {
@@ -110,14 +95,22 @@ dependencyCheck {
   skipConfigurations = [
     "checkstyle",
     "compileOnly",
-    "pmd"
   ]
 }
 
 repositories {
   mavenLocal()
   mavenCentral()
-  maven { url 'https://jitpack.io' }
+  jcenter()
+  maven {
+    url "https://jitpack.io"
+  }
+  maven {
+    url  "https://repo.spring.io/release"
+  }
+  maven {
+    url "https://dl.bintray.com/hmcts/hmcts-maven"
+  }
 }
 
 ext {
@@ -125,38 +118,67 @@ ext {
 }
 
 ext['snakeyaml.version'] = '1.33'
+ext.libraries = [
+  junit5: [
+    "org.junit.jupiter:junit-jupiter-api:${versions.junit}",
+    "org.junit.jupiter:junit-jupiter-engine:${versions.junit}",
+    "org.junit.jupiter:junit-jupiter-params:${versions.junit}",
+    "org.junit.platform:junit-platform-commons:${versions.junitPlatform}",
+    "org.junit.platform:junit-platform-engine:${versions.junitPlatform}"
+  ]
+]
 
 dependencies {
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web'
-  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-actuator'
-  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-aop'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-json'
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-validation'
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-cache'
 
-  implementation group: 'org.springdoc', name: 'springdoc-openapi-ui', version: '1.6.15'
+  implementation group: 'org.springframework.cloud', name: 'spring-cloud-starter-openfeign', version: '3.1.6'
+  implementation group: 'org.springframework.cloud', name: 'spring-cloud-openfeign-core', version: '3.1.6'
+  implementation group: 'io.github.openfeign', name: 'feign-httpclient', version: '11.10'
 
-  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.0.1'
+  implementation group: 'org.springframework.retry', name: 'spring-retry'
+  implementation group: 'com.sendgrid', name: 'sendgrid-java', version: '4.9.3'
+  implementation group: 'com.github.hmcts', name: 'ccd-client', version: '4.9.1'
 
-  implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4JVersion
-  implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
+  implementation group: 'commons-io', name: 'commons-io', version: '2.11.0'
+  implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
 
-  implementation group: 'io.rest-assured', name: 'rest-assured'
+  implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '3.19.1-RELEASE'
+  implementation group: 'uk.gov.hmcts.reform', name: 'service-auth-provider-client', version: '4.0.0'
+  implementation group: 'uk.gov.hmcts.reform', name: 'idam-client', version: '2.0.0'
+  implementation group: 'uk.gov.hmcts.reform', name: 'send-letter-client', version: '3.0.3'
 
-  testImplementation(platform('org.junit:junit-bom:5.9.2'))
-  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+  implementation group: 'uk.gov.hmcts.reform', name: 'document-management-client', version: '7.0.0'
+  implementation group: 'com.github.hmcts', name: 'ccd-case-document-am-client', version: '1.7.1'
+
+  implementation group: 'com.launchdarkly', name: 'launchdarkly-java-server-sdk', version: '5.10.7'
+  implementation group: 'com.google.guava', name: 'guava', version: '31.1-jre'
+
+  annotationProcessor group: 'org.projectlombok', name: 'lombok', version: versions.lombok
+  compileOnly group: 'org.projectlombok', name: 'lombok', version: versions.lombok
+
+  testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: versions.lombok
+  testCompileOnly group: 'org.projectlombok', name: 'lombok', version: versions.lombok
+
+  testImplementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
+  testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '4.8.1'
+  testImplementation group: 'org.mockito', name: 'mockito-inline', version: '4.8.1'
+
+  testImplementation libraries.junit5
   testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', {
     exclude group: 'junit', module: 'junit'
-    exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
   }
 }
 
-mainClassName = 'uk.gov.hmcts.reform.demo.Application'
-
 bootJar {
-  archiveFileName = "spring-boot-template.jar"
+  enabled = false
+}
 
-  manifest {
-    attributes('Implementation-Version': project.version.toString())
-  }
+jar {
+  enabled = true
 }
 
 // Gradle 7.x issue, workaround from: https://github.com/gradle/gradle/issues/17236#issuecomment-894768083
